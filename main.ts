@@ -29,9 +29,14 @@ function fail(message: string): never {
 const lines = ENTRY.split("\n");
 if (lines.length !== 2) fail(`expected exactly 2 lines (To: + message), got ${lines.length}`);
 if (!lines[0].startsWith("To: ")) fail("first line must be a To: line");
+const recipient = lines[0].slice("To: ".length);
+if (recipient.trim().length === 0) fail("To: line names nobody");
+if (lines[1].trim().length === 0) fail("message line is empty or whitespace-only");
 if (lines[1].length > MESSAGE_MAX) {
   fail(`message is ${lines[1].length} chars, over the ${MESSAGE_MAX}-char limit`);
 }
+if (ENTRY.includes("\r")) fail("entry must use LF line endings only");
+if (ENTRY.endsWith("\n")) fail("entry must not end with a trailing newline");
 if (ENTRY.length < GATE_MIN || ENTRY.length > GATE_MAX) {
   fail(`entry is ${ENTRY.length} chars, outside the ${GATE_MIN}-${GATE_MAX} gate`);
 }
@@ -46,6 +51,10 @@ writeFileSync("/output/entry.txt", ENTRY, "utf8");
 const readBack = readFileSync("/output/entry.txt", "utf8");
 if (readBack !== ENTRY) fail("read-back differs from the entry text");
 const bytes = Buffer.byteLength(readBack, "utf8");
+if (bytes !== Buffer.byteLength(ENTRY, "utf8")) {
+  fail(`read-back is ${bytes} bytes, expected ${Buffer.byteLength(ENTRY, "utf8")}`);
+}
+if (readBack.split("\n").length !== 2) fail("read-back is not 2 lines");
 if (readBack.length < GATE_MIN || readBack.length > GATE_MAX) {
   fail(`read-back is ${readBack.length} chars, outside the gate`);
 }
